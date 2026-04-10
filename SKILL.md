@@ -5,7 +5,7 @@ description: "D:\\ResearchVault 的默认工作区技能。将这个工作区中
 
 # Research Vault 检索技能
 
-将这个技能作为 `D:\ResearchVault` 内的默认工作方式。
+将这个技能作为 `对应论文库位置` 内的默认工作方式。
 
 ## 触发规则
 
