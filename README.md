@@ -1,20 +1,20 @@
-# Research Vault Literature Retrieval
+# Research Vault 检索技能
 
-`research-vault-literature-retrieval` is a Codex skill for `D:\ResearchVault`.
+`research-vault-literature-retrieval` 是一个面向 `D:\ResearchVault` 的 Codex 技能。
 
-It treats the vault as the default evidence source for almost every user message in that workspace, then:
+它会把这个工作区中的绝大多数用户输入都当作 Vault 检索请求，然后：
 
-- reads root index pages first
-- searches relevant notes inside the vault
-- prefers existing reading notes
-- answers only from vault evidence
-- uses the default response structure:
+- 先读取根目录索引页
+- 再检索 Vault 中的相关笔记
+- 优先使用已有精读笔记
+- 只基于 Vault 证据回答
+- 默认按照以下结构组织回答：
   - `结论`
   - `支持文献`
   - `差异/争议`
   - `对我研究的启发`
 
-## Files
+## 文件结构
 
 ```text
 .
@@ -23,20 +23,20 @@ It treats the vault as the default evidence source for almost every user message
    └─ openai.yaml
 ```
 
-## What This Skill Does
+## 这个技能做什么
 
-- binds itself to `D:\ResearchVault`
-- reads these index pages first, in order:
+- 绑定到 `D:\ResearchVault`
+- 优先按以下顺序读取索引页：
   - `文献索引.md`
   - `研究主题索引.md`
   - `研究方法索引.md`
   - `字段补全检查.md`
-- skips missing index pages without error
-- searches `D:\ResearchVault\note` with keyword-based retrieval
-- refuses to use outside knowledge as vault evidence
-- says `Vault 中未找到足够依据` when the vault cannot support the answer
+- 索引页缺失时直接跳过，不报错
+- 用关键词方式检索 `D:\ResearchVault\note`
+- 拒绝把外部知识当作 Vault 证据
+- 当 Vault 无法支撑回答时，明确写出 `Vault 中未找到足够依据`
 
-## Typical Triggers
+## 常见触发句式
 
 - `告诉我第三空间的定义`
 - `比较固定效应模型和空间计量两类论文的研究对象、核心变量和识别逻辑`
@@ -44,12 +44,12 @@ It treats the vault as the default evidence source for almost every user message
 - `总结 Vault 里关于某个主题的结论`
 - `这篇和前一篇有什么区别`
 
-## Usage
+## 使用方式
 
-Invoke it as:
+可以这样调用：
 
 ```text
-Use $research-vault-literature-retrieval to search D:\ResearchVault and answer only from existing reading notes.
+使用 $research-vault-literature-retrieval 检索 D:\ResearchVault，并且只基于已有阅读笔记回答问题。
 ```
 
-Or let it act as the default skill inside that workspace.
+也可以让它在这个工作区里作为默认技能自动运行。

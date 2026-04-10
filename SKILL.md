@@ -1,17 +1,17 @@
 ---
 name: research-vault-literature-retrieval
-description: "D:\\ResearchVault 的默认工作区 skill。Treat any user question, request, follow-up, fragment, or ordinary statement in this workspace as a trigger for vault retrieval first, unless it is completely impossible to ground an answer in vault contents. 检索和比较该工作区中已有论文笔记，并仅基于现有精读内容回答问题。Start by reading the root index pages 文献索引.md, 研究主题索引.md, 研究方法索引.md, and 字段补全检查.md in that order, skip missing files without error, then locate relevant notes and answer only from existing reading notes."
+description: "D:\\ResearchVault 的默认工作区技能。将这个工作区中的任意用户提问、追问、片段式输入或普通表述都优先视为 Vault 检索触发，除非完全无法在现有内容中找到依据。先按顺序读取根目录下的 文献索引.md、研究主题索引.md、研究方法索引.md 和 字段补全检查.md，缺失则跳过，再定位相关笔记，并且只基于已有精读笔记或现有笔记内容回答问题。"
 ---
 
-# Research Vault Literature Retrieval
+# Research Vault 检索技能
 
-Use this skill as the default behavior inside `D:\ResearchVault`.
+将这个技能作为 `D:\ResearchVault` 内的默认工作方式。
 
-## Activation Policy
+## 触发规则
 
-- In this workspace, treat every user input as a retrieval trigger first.
-- Include direct questions, short prompts, follow-up fragments, casual wording, and incomplete phrases.
-- Typical trigger shapes include:
+- 在这个工作区里，优先把每一条用户输入都当作检索触发。
+- 适用于直接提问、短句、追问、片段式表达、口语化表达和未补全的词语。
+- 典型触发表达包括：
   - `告诉我第三空间的定义`
   - `比较这几篇论文`
   - `有没有足够依据`
@@ -20,16 +20,16 @@ Use this skill as the default behavior inside `D:\ResearchVault`.
   - `空间计量`
   - `这几篇呢`
   - `为什么`
-- Do not wait for the user to explicitly say `检索` or `搜索`.
-- Only after completing the index-first search flow may you conclude that the vault cannot support an answer.
-- When support is insufficient, still respond through this skill and say `Vault 中未找到足够依据`.
+- 不要等待用户明确说出 `检索` 或 `搜索`。
+- 只有在完成“先索引、后定位”的检索流程之后，才可以判断 Vault 无法支撑回答。
+- 如果依据不足，也要通过这个技能完成回答，并明确写出 `Vault 中未找到足够依据`。
 
-## Workspace Scope
+## 工作区范围
 
-- Bind this skill to the current workspace `D:\ResearchVault`.
-- Do not generalize its file assumptions to other vaults or folders unless the user explicitly asks.
+- 将这个技能绑定到当前工作区 `D:\ResearchVault`。
+- 除非用户明确要求，不要把这里的文件结构假设迁移到其他 Vault 或目录。
 
-## Compressed Workspace Map
+## 压缩版目录结构
 
 ```text
 D:\ResearchVault
@@ -49,78 +49,78 @@ D:\ResearchVault
 └─ 模板\
 ```
 
-## Workflow
+## 工作流程
 
-1. Stay inside the vault.
-   - Work only in `D:\ResearchVault`.
-   - Default to read-only.
-   - Modify files only when the user explicitly asks.
+1. 先限定工作范围。
+   - 仅在 `D:\ResearchVault` 中工作。
+   - 默认只读。
+   - 只有在用户明确要求时才修改文件。
 
-2. Read root index pages first, in this order.
+2. 先读根目录索引页，顺序固定为：
    - `文献索引.md`
    - `研究主题索引.md`
    - `研究方法索引.md`
    - `字段补全检查.md`
-   - If a page is missing, skip it without error.
-   - On Windows PowerShell, read with UTF-8 to avoid garbled Chinese text.
+   - 如果某一页缺失，直接跳过，不报错。
+   - 在 Windows PowerShell 中始终按 UTF-8 读取，避免中文乱码。
 
-3. Locate relevant notes.
-   - Use the index pages first to narrow likely note titles, themes, or methods.
-   - Then search `D:\ResearchVault\note` with `rg`.
-   - Search both Chinese and English keywords, plus likely aliases for methods, variables, regions, and paper titles.
+3. 再定位相关笔记。
+   - 先利用索引页缩小候选笔记标题、主题和方法范围。
+   - 再用 `rg` 搜索 `D:\ResearchVault\note`。
+   - 同时搜索中文关键词、英文关键词，以及方法名、变量名、地区名、论文标题的常见别名。
 
-4. Read evidence notes.
-   - Prefer single-paper reading notes and completed精读笔记.
-   - If only broad review notes, unfinished notes, or weak matches exist, say so explicitly.
-   - Do not fill gaps with outside memory or general knowledge.
+4. 再读证据笔记。
+   - 优先使用单篇精读笔记和已完成的阅读笔记。
+   - 如果只有综述型笔记、未完成笔记或弱相关结果，必须明确说明。
+   - 不要用外部记忆或常识填补空白。
 
-5. Answer from vault evidence only.
-   - Base every conclusion on note content that is actually present.
-   - If evidence is insufficient, say `Vault 中未找到足够依据` before any limited answer.
-   - For multi-paper comparison, compare only what the notes explicitly state about research object, core variables, method, findings, limits, or implications.
+5. 最后只基于 Vault 证据回答。
+   - 每一条结论都必须来自笔记中真实存在的内容。
+   - 如果依据不足，要先写出 `Vault 中未找到足够依据`，再决定是否给出有限回答。
+   - 做多篇比较时，只比较笔记中明确写出的研究对象、核心变量、方法、结论、局限或启发。
 
-6. Use the default answer structure.
+6. 默认回答结构固定为：
    1. `结论`
    2. `支持文献`
    3. `差异/争议`
    4. `对我研究的启发`
-   - Cite specific note titles.
-   - Keep conclusions aligned with supporting notes.
+   - 尽量引用具体笔记标题。
+   - 结论必须和支持文献一一对应。
 
-## Search Pattern
+## 检索模式
 
-Use UTF-8 reads in PowerShell:
+在 PowerShell 中用 UTF-8 读取文件：
 
 ```powershell
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Get-Content -LiteralPath 'D:\ResearchVault\文献索引.md' -Encoding UTF8 -Raw
 ```
 
-Search candidate notes with `rg`:
+用 `rg` 搜索候选笔记：
 
 ```powershell
 rg -n --glob '*.md' "关键词1|keyword2|method|variable" D:\ResearchVault\note
 ```
 
-Then open the most relevant 1-3 notes fully before answering.
+在回答前，完整打开最相关的 1 到 3 篇笔记。
 
-## Guardrails
+## 约束规则
 
-- Do not fabricate paper content, author claims, or definitions.
-- Do not treat outside knowledge as vault evidence.
-- Do not infer that a note is a精读笔记 unless the note content shows that clearly.
-- If the user asks for a definition and the vault has only one supporting note, state that the definition is based on the current Vault note(s), not a universal definition.
-- Even if the user message is vague, still run the retrieval workflow before deciding there is no answer.
-- Do not modify notes, indexes, or `AGENTS.md` unless the user explicitly requests edits.
+- 不要编造论文内容、作者观点或概念定义。
+- 不要把外部知识当成 Vault 证据。
+- 除非笔记内容写得很清楚，否则不要擅自判断某篇笔记是“精读笔记”。
+- 如果用户要求定义，而 Vault 里只有一篇相关笔记，要明确说明这个定义只是基于当前 Vault 依据，不是普遍学术定义。
+- 即使用户表达很模糊，也要先跑完整个检索流程，再决定是否无答案。
+- 除非用户明确要求，否则不要修改笔记、索引页或 `AGENTS.md`。
 
-## Common Uses
+## 常见用途
 
-- Compare two methods or paper groups already covered by the vault.
-- Define a concept from existing notes, such as `第三空间`.
-- Summarize what the vault says about a theme, method, variable, or region.
-- Check whether the vault contains enough evidence before answering.
+- 比较 Vault 中已经覆盖的两类方法或两组论文。
+- 给出现有笔记中的概念定义，例如 `第三空间`。
+- 总结 Vault 对某个主题、方法、变量或地区的已有结论。
+- 在回答前先判断 Vault 中是否有足够依据。
 
-## Example Triggers
+## 触发示例
 
 - `比较固定效应模型和空间计量两类论文的研究对象、核心变量和识别逻辑`
 - `告诉我第三空间的定义`

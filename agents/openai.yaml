@@ -1,4 +1,4 @@
 interface:
-  display_name: "Research Vault Retrieval"
-  short_description: "Default D:\\ResearchVault workspace skill"
-  default_prompt: "Use $research-vault-literature-retrieval as the default skill for any request in D:\\ResearchVault, searching the vault before concluding there is not enough evidence."
+  display_name: "Research Vault 检索技能"
+  short_description: "D:\\ResearchVault 默认工作区技能"
+  default_prompt: "使用 $research-vault-literature-retrieval 作为 D:\\ResearchVault 的默认技能，在判断依据不足之前先完成 Vault 检索。"
