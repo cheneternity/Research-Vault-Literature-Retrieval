@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Vault Retrieval"
+  short_description: "Default D:\\ResearchVault workspace skill"
+  default_prompt: "Use $research-vault-literature-retrieval as the default skill for any request in D:\\ResearchVault, searching the vault before concluding there is not enough evidence."
