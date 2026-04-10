@@ -1,4 +1,4 @@
-# Research Vault 检索技能
+# Research Vault Literature Retrieval
 
 `research-vault-literature-retrieval` 是一个面向 `D:\ResearchVault` 的 Codex 技能。
 
