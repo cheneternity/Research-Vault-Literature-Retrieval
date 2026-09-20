@@ -21,13 +21,13 @@ description: 针对论文库的默认工作区技能。将这个工作区中的�
 
 ## 工作区范围
 
-- 将这个技能绑定到当前工作区 `D:\ResearchVault`。
+- 将这个技能绑定到当前工作区 `C:\ResearchVault`。
 - 除非用户明确要求，不要把这里的文件结构假设迁移到其他 Vault 或目录。
 
 ## 压缩版目录结构
 
 ```text
-D:\ResearchVault
+C:\ResearchVault
 ├─ AGENTS.md
 ├─ 文献索引.md
 ├─ 研究主题索引.md
