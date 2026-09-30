@@ -1,0 +1,22 @@
+name: canonical-sync
+
+on:
+  push:
+    branches: [main, fix/portable-public-release]
+  pull_request:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: cheneternity/Zotero-Analytical-Workflow-Skills
+          path: canonical
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compare with canonical Retrieval Skill
+        run: python tools/check_sync.py --canonical-dir canonical/skills/research-vault-literature-retrieval

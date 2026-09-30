@@ -1,120 +1,240 @@
 ---
 name: research-vault-literature-retrieval
-description: 针对论文库的默认工作区技能。将这个工作区中的任意用户提问、追问、片段式输入或普通表述都优先视为 Vault 检索触发，除非完全无法在现有内容中找到依据。先按顺序读取根目录下的 文献索引.md、研究主题索引.md、研究方法索引.md 和 字段补全检查.md，缺失则跳过，再定位相关笔记，并且只基于已有精读笔记或现有笔记内容回答问题。"
+description: "ResearchVault 文献知识问题的默认检索技能。先从当前 Vault 的 Analytical Notes 定位相关论文，再按需要定向进入对应 Fulltext，必要时回到 Zotero PDF 验证。若用户明确要求基于当前项目文件检索，优先执行严格的项目文件检索后再回答。纯 Skill、代码、Git、文件整理和转换工具调试任务不自动触发文献检索。"
 ---
 
-# Research Vault 检索技能
+# Research Vault Literature Retrieval
 
-将这个技能作为 `对应论文库位置` 内的默认工作方式。
+## 核心定位
 
-## 触发规则
+本技能固定执行：
 
-- 在这个工作区里，优先把每一条用户输入都当作检索触发。
-- 适用于直接提问、短句、追问、片段式表达、口语化表达和未补全的词语。
-- 典型触发表达包括：
-  - `告诉我第三空间的定义`
-  - `比较这几篇论文`
-  - `有没有足够依据`
-- 不要等待用户明确说出 `检索` 或 `搜索`。
-- 只有在完成“先索引、后定位”的检索流程之后，才可以判断 Vault 无法支撑回答。
-- 如果依据不足，也要通过这个技能完成回答，并明确写出 `Vault 中未找到足够依据`。
+NOTE-FIRST RETRIEVAL.
+TARGETED FULLTEXT FOLLOW-UP.
 
-## 工作区范围
+Analytical Notes 负责定位和理解论文；MinerU Fulltext 负责补充、核验、细化、追溯和引用原文；Original Zotero PDF 负责最后一级页面、公式、表格、图像和 OCR 验证。
 
-- 将这个技能绑定到当前工作区 `D:\ResearchVault`。
-- 除非用户明确要求，不要把这里的文件结构假设迁移到其他 Vault 或目录。
+不要把论文库和全文库作为两个平级数据库并行搜索，也不要把 Fulltext 当作默认论文发现层。
 
-## 压缩版目录结构
+## 工作区与身份规则
 
-```text
-D:\ResearchVault
-├─ AGENTS.md
-├─ 文献索引.md
-├─ 研究主题索引.md
-├─ 研究方法索引.md
-├─ 字段补全检查.md
-├─ .obsidian\
-├─ note\
-│  ├─ .codex\
-│  ├─ .obsidian\
-│  └─ 论文文件\
-└─ 模板\
-```
+- 使用用户明确指定的 Vault；否则使用当前 agent 已打开且确认包含该 Vault 的工作区。将其作为本轮 `vault_root`，从实际文件与链接中发现 Analytical Note、Fulltext、Knowledge 和索引目录。
+- 新建与默认检索路径固定为 `02vault/`（Analytical Notes）、`03fulltext/`（Fulltext）和 `01knowledge/`。迁移期间可按现有链接读取 `note/`、`论文库/`、`fulltext/`、`knowledge/` 等 legacy 内容；不要将新内容写入 legacy 目录。
+- Note 与 Fulltext 应保持逻辑分层。依赖目录名区分时，先确认实际结构；不得仅凭文件名认定其类型。
+- 两层属于同一篇论文时，统一使用 zotero_key。
+- Note → Fulltext 优先通过 fulltext_path，其次通过 zotero_key，最后才允许唯一的 title fallback。
+- Fulltext → Note 通过 note_path，并同时核对 zotero_key 和 pdf_key。
+- 标题多重匹配、主键冲突或路径指向不一致时，停止该条目并报告冲突，不得猜测。
+- Fulltext 不进入普通 Dataview 文献索引，但 Retrieval 必须能够跨目录访问它。
 
-## 工作流程
+## Activation Policy
 
-1. 先限定工作范围。
-   - 仅在 `论文库` 中工作。
-   - 默认只读。
-   - 只有在用户明确要求时才修改文件。
+默认使用本技能处理：
 
-2. 先读根目录索引页，顺序固定为：
-   - `文献索引.md`
-   - `研究主题索引.md`
-   - `研究方法索引.md`
-   - `字段补全检查.md`
-   - 如果某一页缺失，直接跳过，不报错。
-   - 在 Windows PowerShell 中始终按 UTF-8 读取，避免中文乱码。
+- 论文、概念、理论、方法、变量、数据、结论和文献证据
+- 多论文比较、研究方向、文献综述
+- 某个说法是否被当前 Vault 支持
 
-3. 再定位相关笔记。
-   - 先利用索引页缩小候选笔记标题、主题和方法范围。
-   - 再用 `rg` 搜索 `论文库`。
-   - 同时搜索中文关键词、英文关键词，以及方法名、变量名、地区名、论文标题的常见别名。
+以下纯操作任务不先执行文献检索：
 
-4. 再读证据笔记。
-   - 优先使用单篇精读笔记和已完成的阅读笔记。
-   - 如果只有综述型笔记、未完成笔记或弱相关结果，必须明确说明。
-   - 不要用外部记忆或常识填补空白。
+- 修改 Skill、Python 或 Git
+- 文件移动、目录整理和 Obsidian 配置
+- MinerU 调试、环境检查或辅助脚本维护
 
-5. 最后只基于 Vault 证据回答。
-   - 每一条结论都必须来自笔记中真实存在的内容。
-   - 如果依据不足，要先写出 `Vault 中未找到足够依据`，再决定是否给出有限回答。
-   - 做多篇比较时，只比较笔记中明确写出的研究对象、核心变量、方法、结论、局限或启发。
+默认只读。只有用户明确要求时才修改 Vault 文件。
 
-6. 默认回答结构固定为：
-   1. `结论`
-   2. `支持文献`
-   3. `差异/争议`
-   4. `对我研究的启发`
-   - 尽量引用具体笔记标题。
-   - 结论必须和支持文献一一对应。
+### High-priority project-file trigger
 
-## 检索模式
+如果用户消息以以下固定短语开头：
 
-在 PowerShell 中用 UTF-8 读取文件：
+`基于当前 ResearchVault 项目文件检索`
 
-```powershell
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-Get-Content -LiteralPath 'D:\ResearchVault\文献索引.md' -Encoding UTF8 -Raw
-```
+立即进入 `STRICT_RESEARCHVAULT_RETRIEVAL`。以下近似表达也触发同一模式：
 
-用 `rg` 搜索候选笔记：
+- `基于 ResearchVault 项目文件检索`
+- `基于当前 ResearchVault 检索`
+- `从当前 ResearchVault 项目文件中检索`
+- `先检索 ResearchVault 再回答`
 
-```powershell
-rg -n --glob '*.md' "关键词1|keyword2|method|variable" D:\ResearchVault\note
-```
+固定短语是最高优先级触发词。严格模式只改变检索启动顺序，不改变本技能已有的 canonical identity、Note/Fulltext 证据链、证据强度、引用追踪、Zotero 验证和只读保护规则。
 
-在回答前，完整打开最相关的 1 到 3 篇笔记。
+## Strict project-file retrieval mode
 
-## 约束规则
+严格模式必须遵守 `PROJECT_FILE_RETRIEVAL_FIRST`：先检索当前 ResearchVault 项目文件，再分析和回答。模型记忆、之前会话结论、Knowledge 概括、缓存回答或文件名印象只能帮助生成搜索词，不能作为本轮 ResearchVault 证据。
 
-- 不要编造论文内容、作者观点或概念定义。
-- 不要把外部知识当成 Vault 证据。
-- 除非笔记内容写得很清楚，否则不要擅自判断某篇笔记是“精读笔记”。
-- 如果用户要求定义，而 Vault 里只有一篇相关笔记，要明确说明这个定义只是基于当前 Vault 依据，不是普遍学术定义。
-- 即使用户表达很模糊，也要先跑完整个检索流程，再决定是否无答案。
-- 除非用户明确要求，否则不要修改笔记、索引页或 `AGENTS.md`。
+执行顺序固定为：
 
-## 常见用途
+`USER QUESTION → PARSE RESEARCH QUESTION → SEARCH CURRENT RESEARCHVAULT PROJECT FILES → IDENTIFY CANDIDATE PAPERS → RESOLVE CANONICAL SOURCE IDENTITY → LOCATE REAL ANALYTICAL NOTES → LOCATE MATCHING FULLTEXTS → VERIFY IMPORTANT CLAIMS WHEN REQUIRED → CLASSIFY EVIDENCE → SYNTHESIZE ANSWER`
 
-- 比较 Vault 中已经覆盖的两类方法或两组论文。
-- 给出现有笔记中的概念定义，例如 `第三空间`。
-- 总结 Vault 对某个主题、方法、变量或地区的已有结论。
-- 在回答前先判断 Vault 中是否有足够依据。
+严格模式下，优先使用当前项目环境实际返回的文件检索结果。开始检索时不要要求用户提供 Windows absolute path、精确 Note/Fulltext 文件名、Zotero key 或 DOI；只有项目文件结果不足以解决 source identity 时，才进一步使用这些定位信息。
 
-## 触发示例
+对核心来源尽量建立并核验：`Canonical paper ↔ actual Analytical Note ↔ matching Fulltext`。Analytical Note 用于理解研究设计、数据、方法、主要发现、局限和主题关系；Fulltext 用于核验重要结论、数值、模型结果、显著性、因果性、变量定义、阈值和作者原始解释。沿用本技能已有证据 schema，不另建第二套 evidence taxonomy。
 
-- `这个概念怎么理解`
-- `帮我看看`
-- `这篇和前一篇有什么区别`
-- `这个说法在 Vault 里站得住吗`
+如果项目文件检索已返回实际的 Analytical Note 或 Fulltext 文件结果，继续沿用这些实际结果作为回答来源，并保留两者的对应关系。不要把正常的项目文件检索改造成等待客户端内部绑定状态的诊断流程；项目文件是否可由客户端直接打开属于交付层验证，不是启动检索的前置条件。路径只能作为调试、文件定位或项目文件结果不可用时的 fallback，不能覆盖已经获得的实际文件结果，也不能成为默认科研来源交付形式。
+
+严格模式的普通回答默认采用：
+
+1. `## 结论`：直接回答问题；
+2. `## 关键证据`：综合本轮实际检索到的文献，并在必要处标明已有证据等级；
+3. `## 来源文件`：列出本轮实际使用的 Analytical Note 和对应 Fulltext 文件结果，尽量保持项目环境可打开的实际文件引用。
+
+用户未使用上述固定或近似触发语时，保留本技能原有的普通触发逻辑；不要把闲聊、简单改写或非文献操作任务强制升级为严格 ResearchVault 全库检索。
+
+## Knowledge-aware routing
+
+Keep NOTE-FIRST RETRIEVAL. The active Vault's Knowledge area is an optional derived-synthesis routing layer for concepts, methods, relationships, controversies, and research-direction/gap questions. It never replaces the Analytical Note or original-text evidence chain.
+
+Classify each question with [references/retrieval-routing.md](references/retrieval-routing.md) before retrieval. For paper-specific and exact-source questions, begin directly with the Analytical Note. For broad synthesis, start from Knowledge only to identify the relevant claims/pages, then return to their supporting Notes; use targeted Fulltext only for the precise point that needs verification.
+
+Knowledge-assisted routing does not authorize a default fulltext-wide scan, raw-key-heavy user output, or treating a Knowledge sentence as an original-paper conclusion.
+
+## 默认 Retrieval Workflow
+
+### STEP 1 — Understand Question
+
+判断用户主要是在问主题、相关论文、方法、变量、结论、定义、原文、页码，还是研究方向。
+
+### STEP 2 — Analytical-note Index
+
+按以下顺序读取当前 Analytical Note 目录下 `_index/` 中存在的页面，缺失则跳过：
+
+1. 文献索引.md
+2. 研究主题索引.md
+3. 研究方法索引.md
+4. 字段补全检查.md
+
+索引只用于导航和召回，不替代原文证据。
+
+### STEP 3 — Analytical Note Retrieval
+
+正常文献发现先搜索本轮已解析的 Analytical Note 目录。搜索 title、theme、methodology、core_variable、key_finding、relevance、中文正文、英文术语、作者和 keywords。
+
+绝不能以 Fulltext 目录作为正常检索第一步。
+
+### STEP 4 — Read Candidate Notes
+
+读取与任务规模相称的候选笔记，建立：
+
+paper、theme、method、variable、finding、relevance、zotero_key、fulltext_path。
+
+单篇问题不无意义打开全文；高层综述和方法比较优先基于 Notes 回答。
+
+### STEP 5 — Evidence Decision
+
+只使用以下三种模式：
+
+- NOTE_ONLY：Notes 已足以回答相关论文、主题归纳、高层方法比较、总体结论或研究方向框架。
+- NOTE_PLUS_FULLTEXT：先由 Note 确定论文、答案框架和语义上下文，再进入对应 Fulltext 补充定义、变量、方法细节、原始结论或 exact quote。
+- PDF_VERIFY_REQUIRED：涉及 PDF 页码、MinerU OCR 疑点、复杂公式、表格结构、图像、图表数值或用户明确要求 PDF 页面。
+
+### STEP 6A — NOTE_ONLY
+
+只基于已读取的 Analytical Notes 回答；如果 Notes 已经足够，不为了形式打开 Fulltext。
+
+### STEP 6B — NOTE_PLUS_FULLTEXT
+
+1. 从已定位的 Note 读取 fulltext_path；缺失时读取 zotero_key。
+2. 按 fulltext_path → zotero_key → 唯一 title fallback 解析对应 Fulltext。
+3. 只打开已经由 Notes 定位的论文全文，不重新扩大论文集合。
+4. 继承 Note 的 theme、methodology、core_variable、key_finding、relevance、关键词和英文术语。
+5. 用这些上下文在对应 MinerU Markdown 中做 targeted search。
+6. 读取命中位置前后 1–3 个自然段或相邻逻辑 block。
+7. 用 Fulltext 补充、核验、细化和追溯 Note，再回答。
+
+### STEP 6C — PDF VERIFY
+
+只有 Fulltext 不足或用户要求最终页面验证时，才进入 Original Zotero PDF。页码只有可靠映射或实际 PDF 验证后才能提供；否则明确写 page unknown，不猜页码。
+
+## 四条强规则
+
+### Primary Retrieval Rule
+
+Analytical Notes are the default and primary source for identifying relevant papers. Never begin normal literature discovery from fulltext/.
+
+### Fulltext Follow-up Rule
+
+Open MinerU Fulltext only after the corresponding paper has been resolved through its Analytical Note，除非用户明确要求 exact-term search 或补充全文召回。
+
+### Context Inheritance Rule
+
+进入 Fulltext 时必须继承 Note 已提供的搜索词、变量、方法、发现、概念和上下文；不得脱离 Note 重新宽泛搜索。
+
+### Evidence Supplement Rule
+
+Use MinerU Fulltext to supplement, verify, refine, trace, and quote Analytical Notes—not to replace Analytical Note retrieval.
+
+## Fulltext 搜索范围
+
+默认只对已定位论文做 targeted search，例如：
+
+03fulltext/<collection>/<zotero_key>.md
+
+根据 Note 中的 building height、building volume、building lifespan、random forest、SHAP 或对应英文原句搜索。
+
+禁止默认扫描整个 Fulltext 目录。仅以下情况允许例外：
+
+1. 用户明确要求直接在全文中搜索某术语；
+2. 用户要求找正文中出现某个确切词组的论文；
+3. 用户要核验 Notes 无法判断的具体术语；
+4. Notes 明显召回不足，需要明确标记为 supplementary fulltext recall。
+
+即使发生例外，仍应回到对应 Note 获取论文身份和背景。
+
+## 证据与引用规则
+
+- 原文只能来自 MinerU Fulltext 或 Original Zotero PDF，不得由中文 Note 反向生成英文 quote。
+- Quote 必须读取上下文，并检查 however、although、not、only when、conditional、hypothesis、limitation 和 robustness 等限定。
+- Fulltext 缺失时明确说明“该 analytical note 当前尚未建立 MinerU fulltext”，不得用模型记忆补论文内容。
+- 默认 Vault-only。只有用户明确要求外部论文或联网搜索时才切换外部证据模式。
+- 保持可追踪链路：问题 → 索引 → Note → zotero_key → fulltext_path → section/context → PDF page（如已验证）→ 回答。
+
+## 研究方向与跨论文比较
+
+研究方向梳理：
+
+Root Index → 大量 Analytical Notes → 主题结构和研究空缺 → 筛选关键论文 → 仅对关键论据进入 Fulltext → 形成判断。
+
+跨论文比较：
+
+先用 Notes 建立方法、变量或结论矩阵，再只对需要确认的定义、指标、参数、模型和原话进入各自 Fulltext。不得重新完整读取所有全文，也不得因为某篇全文出现新概念而自动扩大论文集合。
+
+## Index Isolation Rule
+
+普通文献索引、研究主题索引、研究方法索引和字段补全检查继续只识别 Analytical Notes：
+
+- 现有 #literature-note
+- 或 type: literature-note
+
+type: literature-fulltext 不得作为普通文献记录出现。物理隔离不等于检索隔离：Fulltext 仍可被 Retrieval 跨目录定向读取。
+
+## 五个逻辑测试
+
+1. “有哪些论文研究建筑高度与环境绩效？”
+   `02vault/_index/` → `02vault/` Analytical Notes → 返回相关论文，不扫描 `03fulltext/`。
+2. “A、B、C 三篇如何定义 building height？”
+   Notes → 确认 A/B/C → 分别 resolve Fulltext → 只搜索三篇全文 → 比较定义。
+3. “第二篇作者关于结论的原话？”
+   第二篇 Note → fulltext_path → Fulltext → exact quote → context。
+4. “这句话在 PDF 第几页？”
+   Note → Fulltext → page mapping 或 PDF Verify；不可靠时返回 unknown。
+5. “根据整个论文库梳理研究方向？”
+   大量 Analytical Notes → 研究框架 → 关键论文 → 选择性 Fulltext 核验，不读取几十篇全文。
+
+最终原则：
+
+SEPARATE STORAGE.
+SHARED IDENTITY.
+RETRIEVE FROM NOTES.
+TRACE INTO FULLTEXT.
+VERIFY THE SOURCE.
+
+## 综述型问题的 paper-level retrieval state machine
+
+以下问题必须按 paper-level candidate pool 处理：文献综述、已有研究发现、共识与争议、指标方向比较、方法比较、研究缺口、直接/间接/中介效应。
+
+1. **Topic discovery**：Knowledge Notes 只负责导航同义词、指标、方法和候选研究；正式候选必须回到 `scope=papers` 的 Analytical Note 结果。
+2. **Candidate collection**：为每个语义主题维护候选池，并跨所有 query 合并。优先使用 Gateway 返回的 `paper_id`，必要时依次使用 `zotero_key`、DOI、唯一规范化标题作为去重身份。Analytical Note、Fulltext 和 Knowledge Note 的文件命中不得直接当作论文数；同一论文多次命中只能计 1 篇。
+3. **Per-query accounting**：每次 Search 都记录 `query`、`raw_hits`、`unique_papers_this_query`、`new_unique_papers`、`master_unique_papers`、`page`、`has_more` 和 `next_page`。Gateway 的 `total_unique_papers` 是该 query 跨页的总数，不是跨 query 的候选池总数；跨 query 的池必须由模型继续合并。
+4. **Pagination and coverage**：使用 `scope=papers` 和 `page_size=30`（旧客户端可用 `top_k=30`）。只要 `has_more=true` 且候选池未达到最低覆盖，就必须请求 `next_page`；不能把当前页、文件数或核验数当作论文数。综述候选池最低目标为 15 篇，默认目标为 20 篇，一般覆盖范围为 20–30 篇。
+5. **Allowed stopping conditions**：综述默认目标为 20 篇，最低覆盖目标为 15 篇（除非用户指定其他数量）。候选收集仅可在以下任一条件成立时停止：`master_unique_papers >= 20`；已执行多个语义不同的 query 且每个 query 的所有页面均已到尾部（`has_more=false`）；或连续 2–3 个概念不同的扩展 query 均只产生 `new_unique_papers <= 1`，且没有出现新的指标、机制、方法、尺度或结果类型。单个 zero-new query、结果重叠、已经找到几篇高相关论文或已经核验 5–7 篇，均不是停止理由。若最终少于 15 篇，必须报告 query、页面、`has_more` 和候选统计，并区分数据不足与检索覆盖不足。
+6. **Verification and synthesis**：完成候选池和初筛后，才选择 CORE/RELEVANT 论文进入 `Analytical Note → matching Fulltext` 核验；最后再综合一致方向、冲突方向、直接效应和中介机制，并报告检索覆盖块。
